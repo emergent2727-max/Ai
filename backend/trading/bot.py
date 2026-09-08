@@ -19,6 +19,7 @@ from . import indicators as ind
 from . import analysis as an
 from .analysis import news_engine
 from . import decision as dec
+from . import notify as notify_mod
 from .execution import (ExecutionEngine, PositionManager, reconcile, compute_equity,
                         compute_stop_take, gen_client_order_id)
 from .database import (db, get_config, save_config, log_event, log_decision,
@@ -93,7 +94,33 @@ class Bot:
             asyncio.create_task(self._public_ws_loop()),
             asyncio.create_task(self._private_ws_loop()),
             asyncio.create_task(self._news_loop()),
+            asyncio.create_task(self._telegram_loop()),
         ]
+
+    async def notify(self, text):
+        if not self.cfg.get("alerts_enabled"):
+            return
+        cid = self.cfg.get("telegram_chat_id")
+        if cid:
+            await notify_mod.send(cid, text)
+
+    async def _telegram_loop(self):
+        """Auto-detect chat id once the user messages the bot; then idle-poll."""
+        greeted = bool(self.cfg.get("telegram_chat_id"))
+        while self._running:
+            try:
+                if notify_mod.enabled() and not self.cfg.get("telegram_chat_id"):
+                    cid = await notify_mod.detect_chat_id()
+                    if cid:
+                        self.cfg["telegram_chat_id"] = cid
+                        await save_config(self.cfg)
+                        await notify_mod.send(cid,
+                            "✅ <b>DACTE alerts linked.</b>\nYou'll get a ping on every open, "
+                            "protect, reduce, close, pause and resume.")
+                        greeted = True
+            except Exception as e:
+                logger.warning("telegram loop: %s", e)
+            await asyncio.sleep(20 if not greeted else 90)
 
     async def shutdown(self):
         self._running = False
@@ -362,6 +389,10 @@ class Bot:
             self.cooldowns[symbol] = time.time() + self.cfg["risk"]["symbol_cooldown_sec"]
             decision_log["result"] = "EXECUTED"
             await feed_push(f"Fill pending confirmation for {symbol} {d['action']}", "exec", symbol)
+            await self.notify(
+                f"🟢 <b>OPENED {d['action'].replace('_',' ')}</b> {symbol}\n"
+                f"size {contracts} @ ~{price}\nSL {stop} · TP {take} · R:R {rr}\n"
+                f"confidence {d['confidence']}% · regime {snap['regime']}")
         else:
             decision_log["result"] = "EXEC_FAILED"
             decision_log["exec_error"] = res.get("error")
@@ -421,6 +452,20 @@ class Bot:
                 if not out["errors"]:
                     if self.conn["rest"] != "CONNECTED":
                         self.conn["rest"] = "CONNECTED"
+                # AUTO-RESUME after restart recovery (once reconciled)
+                if (not getattr(self, "_auto_resume_done", False)
+                        and self.cfg.get("auto_resume")
+                        and self.cfg.get("live_trading") and self.cfg.get("mode") != "off"
+                        and self.status == "PAUSED"
+                        and (self.paused_reason or "").startswith("Restarted")
+                        and self.conn["rest"] == "CONNECTED"):
+                    self._auto_resume_done = True
+                    self.status = "ACTIVE"
+                    self.state = "ANALYZING"
+                    self.paused_reason = None
+                    await log_audit("auto_resume", {"reason": "restart recovery reconciled"})
+                    await feed_push("AUTO-RESUME: reconciled after restart — autonomous trading live", "system")
+                    await self.notify("🔄 <b>Auto-resumed</b> after restart — bot is live and trading again.")
             except Exception as e:
                 logger.exception("reconcile error: %s", e)
                 self.conn["account"] = "ERROR"

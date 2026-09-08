@@ -38,6 +38,9 @@ DEFAULT_CONFIG = {
     "fees": {"taker": 0.0005, "maker": 0.0002, "slippage_pct": 0.0005},
     "trailing_stop_enabled": True,
     "use_llm_reasoning": True,
+    "telegram_chat_id": None,
+    "alerts_enabled": True,
+    "auto_resume": True,
 }
 
 BOT_STATES = ["ANALYZING", "WAITING", "SIGNAL", "EXECUTING", "MANAGING", "PAUSED"]
