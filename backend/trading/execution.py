@@ -18,6 +18,17 @@ def gen_client_order_id() -> str:
     return ("dacte" + uuid.uuid4().hex)[:32]
 
 
+def round_to_tick(price, tick):
+    try:
+        tick = float(tick)
+    except (TypeError, ValueError):
+        tick = 0
+    if not tick:
+        return round(float(price), 6)
+    steps = round(float(price) / tick)
+    return round(steps * tick, 10)
+
+
 def compute_stop_take(entry_price, direction, atr, structure, min_rr):
     """ATR + structure aware SL/TP. direction: 'long'|'short'."""
     atr = atr or entry_price * 0.005
@@ -82,12 +93,32 @@ class ExecutionEngine:
             await feed_push(f"Order acknowledged id={res.get('id')} state={res.get('state')}", "exec", symbol)
             await log_audit("order_placed", {"coid": coid, "symbol": symbol, "side": side,
                                              "size": contracts, "delta_id": res.get("id")})
+            # Auto-attach exchange-native protective bracket on new futures entries
+            if (not reduce_only) and mode == "futures" and (meta or {}).get("stop") and meta.get("take"):
+                await self.attach_bracket(symbol, meta["stop"], meta["take"])
             return {"ok": True, "order": res, "client_order_id": coid}
         except DeltaError as e:
             await db.orders.update_one({"client_order_id": coid},
                                        {"$set": {"state": "rejected", "error": e.payload}})
             await feed_push(f"Order REJECTED {symbol}: {e.payload.get('error')}", "error", symbol)
             await log_audit("order_rejected", {"coid": coid, "error": e.payload})
+            return {"ok": False, "error": e.payload}
+
+    async def attach_bracket(self, symbol, stop_price, take_price):
+        """Place exchange-native SL/TP bracket on the current open position."""
+        product = self.products.get(symbol)
+        if not product:
+            return {"ok": False, "error": f"unknown product {symbol}"}
+        tick = product.get("tick_size")
+        sl = round_to_tick(stop_price, tick)
+        tp = round_to_tick(take_price, tick)
+        try:
+            res = await client.place_bracket(product["id"], symbol, sl, tp)
+            await feed_push(f"Protective bracket set {symbol}: SL {sl} / TP {tp}", "exec", symbol)
+            await log_audit("bracket_placed", {"symbol": symbol, "stop": sl, "take": tp})
+            return {"ok": True, "bracket": res, "stop": sl, "take": tp}
+        except DeltaError as e:
+            await feed_push(f"Bracket FAILED {symbol}: {e.payload.get('error')}", "error", symbol)
             return {"ok": False, "error": e.payload}
 
 
@@ -146,7 +177,12 @@ async def reconcile(products_by_id):
     except DeltaError as e:
         out["errors"].append(("positions", e.payload))
     try:
-        out["open_orders"] = await client.get_orders(states="open") or []
+        oo = await client.get_orders(states="open") or []
+        try:
+            oo += await client.get_orders(states="pending") or []
+        except DeltaError:
+            pass
+        out["open_orders"] = oo
     except DeltaError as e:
         out["errors"].append(("orders", e.payload))
     try:

@@ -25,5 +25,7 @@ export const api = {
   updateConfig: (body) => c.put("/bot/config", body).then((r) => r.data),
   cancelOrders: () => c.post("/emergency/cancel-orders").then((r) => r.data),
   closePositions: (confirm) => c.post("/emergency/close-positions", { confirm }).then((r) => r.data),
+  protect: (symbol, stop_pct, take_pct) => c.post("/positions/protect", { symbol, stop_pct, take_pct }).then((r) => r.data),
+  performance: () => c.get("/performance").then((r) => r.data),
   backtest: (body) => c.post("/backtest", body).then((r) => r.data),
 };

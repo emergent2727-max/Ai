@@ -67,6 +67,12 @@ class ManualOrderReq(BaseModel):
     confirm: str = ""
 
 
+class ProtectReq(BaseModel):
+    symbol: str
+    stop_pct: float = 1.0
+    take_pct: float = 2.0
+
+
 # ---------- telemetry ----------
 @api.get("/")
 async def root():
@@ -158,7 +164,8 @@ async def orders():
         out.append({"id": o.get("id"), "symbol": o.get("product_symbol") or o.get("symbol"),
                     "side": o.get("side"), "size": o.get("size"),
                     "unfilled_size": o.get("unfilled_size"), "limit_price": o.get("limit_price"),
-                    "order_type": o.get("order_type"), "state": o.get("state")})
+                    "order_type": o.get("stop_order_type") or o.get("order_type"),
+                    "stop_price": o.get("stop_price"), "state": o.get("state")})
     return out
 
 
@@ -221,6 +228,58 @@ async def emergency_close(req: ConfirmReq):
     if req.confirm.strip().upper() != "CLOSE ALL":
         raise HTTPException(400, "confirmation phrase required: 'CLOSE ALL'")
     return {"ok": True, "results": await bot.emergency_close_positions()}
+
+
+@api.post("/positions/protect")
+async def protect_position(req: ProtectReq):
+    res = await bot.protect_position(req.symbol, req.stop_pct, req.take_pct)
+    if not res.get("ok"):
+        raise HTTPException(400, str(res.get("error")))
+    return res
+
+
+@api.get("/performance")
+async def performance():
+    decs = await db.bot_decisions.find().sort("ts", -1).limit(500).to_list(500)
+    executed = [d for d in decs if d.get("result") == "EXECUTED"]
+    no_trade = [d for d in decs if d.get("result") == "NO_TRADE"]
+    failed = [d for d in decs if d.get("result") == "EXEC_FAILED"]
+    by_symbol = {}
+    for d in executed:
+        by_symbol[d.get("symbol")] = by_symbol.get(d.get("symbol"), 0) + 1
+    # realized pnl + fees from actual Delta fills (authoritative)
+    fills = bot.recent_fills or []
+    fees = 0.0
+    realized = 0.0
+    wins = losses = 0
+    for f in fills:
+        try:
+            fees += float(f.get("commission") or 0)
+        except (TypeError, ValueError):
+            pass
+        meta = f.get("meta_data") or {}
+        pnl = meta.get("pnl")
+        if pnl not in (None, ""):
+            try:
+                p = float(pnl)
+                realized += p
+                if p > 0:
+                    wins += 1
+                elif p < 0:
+                    losses += 1
+            except (TypeError, ValueError):
+                pass
+    closed = wins + losses
+    return {
+        "executed": len(executed), "no_trade": len(no_trade), "exec_failed": len(failed),
+        "total_decisions": len(decs), "by_symbol": by_symbol,
+        "avg_confidence_executed": round(sum(d.get("confidence", 0) for d in executed) / len(executed), 1) if executed else 0,
+        "fills_count": len(fills), "total_fees": round(fees, 6),
+        "realized_pnl_from_fills": round(realized, 6),
+        "wins": wins, "losses": losses,
+        "win_rate": round(wins / closed * 100, 1) if closed else None,
+        "note": "Realized P&L/fees are from actual Delta fills. Win-rate covers closed round-trips only.",
+    }
 
 
 @api.post("/manual/order")

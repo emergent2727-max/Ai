@@ -187,5 +187,18 @@ class DeltaClient:
         return await self._request("POST", f"/v2/products/{int(product_id)}/orders/leverage",
                                    body=body, signed=True)
 
+    async def place_bracket(self, product_id, product_symbol, stop_loss_price,
+                            take_profit_price, tp_limit_price=None, trigger="mark_price"):
+        """Attach exchange-native protective SL/TP bracket to an OPEN position."""
+        body = {
+            "product_id": int(product_id),
+            "product_symbol": product_symbol,
+            "stop_loss_order": {"order_type": "market_order", "stop_price": str(stop_loss_price)},
+            "take_profit_order": {"order_type": "limit_order", "stop_price": str(take_profit_price),
+                                   "limit_price": str(tp_limit_price or take_profit_price)},
+            "bracket_stop_trigger_method": trigger,
+        }
+        return await self._request("POST", "/v2/orders/bracket", body=body, signed=True)
+
 
 client = DeltaClient()

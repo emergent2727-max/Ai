@@ -15,6 +15,7 @@ import { RiskAndStrategyConfig } from "./components/RiskAndStrategyConfig";
 import { LiveTradingModal } from "./components/LiveTradingModal";
 import { EmergencyControls } from "./components/EmergencyControls";
 import { NewsPanel } from "./components/NewsPanel";
+import { StrategyPerformance } from "./components/StrategyPerformance";
 
 export default function App() {
   const [state, setState] = useState(null);
@@ -26,6 +27,7 @@ export default function App() {
   const [orders, setOrders] = useState([]);
   const [account, setAccount] = useState(null);
   const [news, setNews] = useState(null);
+  const [perf, setPerf] = useState(null);
   const [symbol, setSymbol] = useState("BTCUSD");
   const [tab, setTab] = useState("intel");
   const [liveModal, setLiveModal] = useState(false);
@@ -38,6 +40,7 @@ export default function App() {
       ]);
       setState(s); setAnalysis(a); setEvents(e); setFeed(f);
       setPositions(p); setOrders(o); setAccount(ac); setNews(n);
+      api.performance().then(setPerf).catch(() => {});
     } catch (err) { /* transient */ }
   }, []);
 
@@ -106,7 +109,8 @@ export default function App() {
         )}
         {tab === "work" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <PositionsAndOrders positions={positions} orders={orders} />
+            <PositionsAndOrders positions={positions} orders={orders} onProtect={api.protect} />
+            <StrategyPerformance perf={perf} />
             <RiskAndStrategyConfig config={config} onSave={saveConfig} />
           </div>
         )}

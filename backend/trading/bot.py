@@ -577,6 +577,23 @@ class Bot:
         await log_audit("emergency_close_positions", {"results": results})
         return results
 
+    async def protect_position(self, symbol, stop_pct=1.0, take_pct=2.0):
+        pos = next((p for p in self.positions
+                    if self.products_by_id.get(p.get("product_id"), {}).get("symbol") == symbol), None)
+        if not pos or not pos.get("size"):
+            return {"ok": False, "error": f"no open position for {symbol}"}
+        entry = float(pos.get("entry_price") or self.mark_prices.get(symbol, 0))
+        if not entry:
+            return {"ok": False, "error": "no entry price"}
+        long_pos = pos["size"] > 0
+        if long_pos:
+            stop = entry * (1 - stop_pct / 100)
+            take = entry * (1 + take_pct / 100)
+        else:
+            stop = entry * (1 + stop_pct / 100)
+            take = entry * (1 - take_pct / 100)
+        return await self.exec_engine.attach_bracket(symbol, stop, take)
+
     def snapshot(self):
         return {
             "status": self.status, "state": self.state, "mode": self.cfg["mode"],
