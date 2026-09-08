@@ -1,0 +1,177 @@
+{
+  "project_name": "Delta Autonomous Crypto Trading Engine (DACTE)",
+  "context_type": "DASHBOARD_AND_ADMIN_PANEL",
+  "theme_preference": "dark_primary_with_tactical_precision",
+  "typography": {
+    "heading_font": "Barlow Condensed, Chivo, sans-serif",
+    "body_font": "IBM Plex Sans, -apple-system, sans-serif",
+    "mono_font": "JetBrains Mono, Menlo, monospace",
+    "hierarchy": {
+      "h1_top_banner": "text-2xl sm:text-3xl font-extrabold uppercase tracking-tight font-display",
+      "h2_panel_header": "text-lg sm:text-xl font-bold uppercase tracking-wider text-slate-100",
+      "h3_section_sub": "text-sm sm:text-base font-semibold tracking-wide text-slate-300",
+      "metric_value_large": "text-2xl sm:text-3xl font-black font-mono tracking-tight",
+      "metric_label": "text-xs uppercase font-medium tracking-widest text-slate-400",
+      "status_tag": "text-[11px] font-mono font-bold tracking-widest uppercase px-2 py-0.5 rounded"
+    },
+    "font_cdn_instructions": "Import 'Barlow Condensed:wght@600;700;800;900', 'IBM Plex Sans:wght@400;500;600;700', and 'JetBrains Mono:wght@400;500;700' in index.html or index.css for optimal institutional terminal feel."
+  },
+  "colors": {
+    "palette_name": "Performance Pro Obsidian & Kinetic Signal",
+    "base_background": "#080B10",
+    "panel_background": "#0D1117",
+    "panel_surface_elevated": "#151B23",
+    "border_subtle": "#21262D",
+    "border_focus": "#30363D",
+    "text_primary": "#F0F6FC",
+    "text_secondary": "#8B949E",
+    "text_tertiary": "#6E7681",
+    "kinetic_blaze_danger": "#F85149",
+    "kinetic_green_profit": "#2EA043",
+    "kinetic_green_glow": "rgba(46, 160, 67, 0.2)",
+    "kinetic_red_glow": "rgba(248, 81, 73, 0.2)",
+    "amber_warning": "#D29922",
+    "amber_glow": "rgba(210, 153, 34, 0.2)",
+    "cyan_active_intel": "#388BFD",
+    "mode_spot_badge": "#388BFD",
+    "mode_futures_badge": "#A371F7",
+    "mode_off_badge": "#6E7681",
+    "state_colors": {
+      "ANALYZING": "#388BFD",
+      "WAITING": "#8B949E",
+      "SIGNAL": "#E3B341",
+      "EXECUTING": "#F0883E",
+      "MANAGING": "#2EA043",
+      "PAUSED": "#DA3633",
+      "ERROR": "#F85149"
+    },
+    "forbidden_colors": [
+      "#7351B7",
+      "#1B93A4"
+    ]
+  },
+  "layout_and_grids": {
+    "grid_mode": "MODE_B_HIGH_DENSITY_INSTITUTIONAL",
+    "structure": [
+      {
+        "section": "Autonomous Master Bar",
+        "description": "Sticky top bar showing system heartbeat, Autonomous Live Trading status (ACTIVE/PAUSED/ERROR), Active Mode (OFF/SPOT/FUTURES toggle & selector), Bot State machine (ANALYZING -> WAITING -> SIGNAL -> EXECUTING -> MANAGING -> PAUSED), Latency indicator, and Emergency Kill Switch trigger.",
+        "testid": "autonomous-master-bar"
+      },
+      {
+        "section": "Connection Health Matrix Bar",
+        "description": "Compact horizontal status badges showing 6 endpoints: Delta REST, Public WS, Private WS, Market Data, News Stream, and Account Stream with LIVE/CONNECTED/STALE/UNAVAILABLE states.",
+        "testid": "connection-health-bar"
+      },
+      {
+        "section": "Primary Account & Equity Metric Strip",
+        "description": "Dense 8-stat grid: Real Equity (INR/USD), Available Margin, Realized P&L, Unrealized P&L, Today Net P&L, Today Fees, Open Positions count, Open Orders count.",
+        "testid": "account-metrics-grid"
+      },
+      {
+        "section": "Core Intelligence Split (3 Columns on desktop)",
+        "description": "Left: 'Bot Brain' Current Market Analysis (per symbol score radar, technical/structure/order-flow/panic meters, LLM/Algo confidence score, and clear DECISION badge). Center: 'Live Market Events' Flash crash detector, panic selling/buying gauges, whale transaction detector. Right: 'Live Autonomous Decision Feed' real-time chronological timeline with millisecond precision and rule justifications.",
+        "testid": "core-intelligence-section"
+      },
+      {
+        "section": "Secondary Working Area (Tabs or Split)",
+        "description": "Tab 1: Active Positions & Working Orders table. Tab 2: Autonomous Risk Limits & Strategy Weight Tuners. Tab 3: Emergency Action Center (Cancel Open Orders, Emergency Close All, Freeze Trading).",
+        "testid": "trading-work-area"
+      }
+    ]
+  },
+  "component_structure": {
+    "components": [
+      {
+        "name": "AutonomousStatusBar",
+        "path": "/app/frontend/src/components/AutonomousStatusBar.js",
+        "purpose": "Displays current running status, trading mode, engine state step pills, and emergency stop button."
+      },
+      {
+        "name": "ConnectionHealthBar",
+        "path": "/app/frontend/src/components/ConnectionHealthBar.js",
+        "purpose": "Renders real-time ping/health badges for Delta REST, Public WS, Private WS, Market Data, News, and Account."
+      },
+      {
+        "name": "AccountMetrics",
+        "path": "/app/frontend/src/components/AccountMetrics.js",
+        "purpose": "Renders real-time financial stats with profit/loss color coded badges and tooltips."
+      },
+      {
+        "name": "BotBrainAnalysis",
+        "path": "/app/frontend/src/components/BotBrainAnalysis.js",
+        "purpose": "The core 'What the bot is seeing & thinking' panel: symbol selector (BTCUSD, ETHUSD, SOLUSD), regime, technical score, volume score, panic level, confidence meter, and Final Decision card."
+      },
+      {
+        "name": "LiveMarketEvents",
+        "path": "/app/frontend/src/components/LiveMarketEvents.js",
+        "purpose": "Monitors anomaly events like flash dumps, liquidation cascades, volume spikes with severity meters (CRITICAL, HIGH, MODERATE)."
+      },
+      {
+        "name": "DecisionTimelineFeed",
+        "path": "/app/frontend/src/components/DecisionTimelineFeed.js",
+        "purpose": "Real-time scrollable terminal stream of bot thought iterations: Observation -> Filter -> Validation -> Signal -> Execution with telemetry tags."
+      },
+      {
+        "name": "PositionsAndOrders",
+        "path": "/app/frontend/src/components/PositionsAndOrders.js",
+        "purpose": "Displays live open positions (symbol, side, size, entry, mark, unrealized PnL, liquidation price) and working orders."
+      },
+      {
+        "name": "RiskAndStrategyConfig",
+        "path": "/app/frontend/src/components/RiskAndStrategyConfig.js",
+        "purpose": "Interactive inputs for max daily drawdown, max leverage, position sizing cap, stop-loss strictness, and weight sliders for Technical / Order-flow / Sentiment / Volatility."
+      },
+      {
+        "name": "LiveTradingModal",
+        "path": "/app/frontend/src/components/LiveTradingModal.js",
+        "purpose": "High-friction safety modal with real-money risk disclosure, capital warning, typed confirmation string ('ENABLE REAL CAPITAL'), and toggle activation."
+      },
+      {
+        "name": "EmergencyControls",
+        "path": "/app/frontend/src/components/EmergencyControls.js",
+        "purpose": "Subordinate emergency action zone: Stop Autonomous Loop, Cancel Open Orders, Panic Close All with modal verification."
+      }
+    ]
+  },
+  "interactive_and_test_attributes": {
+    "mandatory_data_testids": [
+      "bot-status-badge",
+      "bot-mode-selector",
+      "bot-state-indicator",
+      "emergency-kill-switch-btn",
+      "enable-live-trading-btn",
+      "live-trading-confirm-modal",
+      "confirm-live-input",
+      "confirm-live-submit-btn",
+      "account-equity-val",
+      "account-pnl-today-val",
+      "symbol-selector-dropdown",
+      "bot-decision-badge",
+      "bot-confidence-meter",
+      "panic-level-gauge",
+      "connection-health-grid",
+      "market-events-list",
+      "decision-feed-container",
+      "positions-table",
+      "orders-table",
+      "risk-config-form",
+      "emergency-cancel-orders-btn",
+      "emergency-close-positions-btn"
+    ]
+  },
+  "anti_ai_design_rules": {
+    "do_not_use_generic_cards": "Use 1px border-slate-800 with bg-[#0D1117] and inset highlight border. Never use generic white cards with drop shadows.",
+    "never_use_ai_emojis": "Forbidden: 🤖, 🧠, 💡, 🔮, 🎯, 🚀. Use technical glyphs, SVG icons (lucide-react Activity, ShieldAlert, Cpu, Terminal, Zap, Radio, Sliders, AlertTriangle).",
+    "honesty_rule": "If API key or data feed is simulated or offline, display explicit 'UNAVAILABLE / DISCONNECTED' badge in amber/red. Never render fake live green ticks when disconnected.",
+    "dense_metrics": "Use mono font JetBrains Mono for all numbers, decimal places, and timestamps. Use 2 decimal places for INR/USD, 4 for crypto prices."
+  },
+  "instructions_to_main_agent": [
+    "1. Keep files in React JSX (.js) format since this is a Create React App / CRACO setup with .js files.",
+    "2. Ensure all interactive buttons, selects, and inputs have exact data-testid attributes specified.",
+    "3. Implement full state management: User can switch modes (TRADING OFF / SPOT / FUTURES), tweak risk limits, trigger the Scary Real-Money Enable flow, test emergency stop, and filter decision logs.",
+    "4. Connect realistic mock engine loop that simulates autonomous tick updates every 2-3 seconds when bot is ACTIVE so the user sees the Bot Thinking cycle in real-time.",
+    "5. Provide pre-configured endpoints for Delta Exchange India (/v2/tickers, /v2/orders, /v2/products) with clear API credential input settings tab or modal.",
+    "6. Ensure all contrast meets APCA/WCAG standards with explicit hover and active states."
+  ]
+}
